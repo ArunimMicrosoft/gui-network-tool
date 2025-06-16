@@ -1274,27 +1274,24 @@ class NetworkToolApp:
         threading.Thread(target=report_task, daemon=True).start()
 
     def show_technical_documentation(self):
-        """Display technical SOP and documentation in the output area with colored headings, topics, and clickable reference links."""
         import webbrowser
-        self.show_text()  # Ensure the text widget is visible
-
-        # Set word wrap for the text widget to ensure long lines are wrapped
+        self.show_text()
         self.graph_text.config(wrap=tk.WORD)
 
         doc = (
             "Technical SOP & Documentation\n"
             "Version: 1.5.2 (Revised) Release — Date: 30 June 2025\n"
             "🔧 Version 1.5.2 Update: Say hello to the new Test-NetConnection button — because real pros test ports with style. No more typing commands like it’s 1999. Just click, connect, and consider your network officially interrogated.\n"
-            "🖼️ GUI now stretches, shrinks, and flexes like a yoga master—thanks to Tkinter's grid, pack, and propagate magic. Resize away, your network tools will always look sharp!\n\n"
+            "🖼️ GUI now stretches, shrinks, and flexes like a yoga master—thanks to Tkinter's grid, pack, and propagate magic. Resize away, your network tools will always look sharp!\n"
             "1. Product Overview\n"
             "Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting.\n"
-            "It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.\n\n"
+            "It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.\n"
             "2. System Requirements\n"
             "• OS: Windows 10/11, Windows Server 2012–2022\n"
             "• Python: 3.8+ (for source version)\n"
             "• Dependencies: requests, reportlab, tkinter (standard with Python)\n"
             "• Privileges: Administrator recommended for full netstat/route access\n"
-            "• Network: Internet required for GeoIP, ASN, and speed test features\n\n"
+            "• Network: Internet required for GeoIP, ASN, and speed test features\n"
             "3. Installation\n"
             "A. Standalone Executable:\n"
             "   - Download the .exe file and double-click to launch. No Python required.\n"
@@ -1303,7 +1300,7 @@ class NetworkToolApp:
             "   2. Install dependencies:\n"
             "      pip install requests reportlab\n"
             "   3. Run:\n"
-            "      python src/main.py\n\n"
+            "      python src/main.py\n"
             "4. Functional Overview\n"
             "All diagnostics and reports are scoped to the IP/domain entered in the search bar.\n"
             "Buttons:\n"
@@ -1318,7 +1315,7 @@ class NetworkToolApp:
             "  - Divide Subnet: Splits entered CIDR into user-defined subnets.\n"
             "  - Auto Network Health Report (PDF): Aggregates diagnostics into a PDF report.\n"
             "  - Reset Output & Input: Clears output and search bar.\n"
-            "  - Stop All Functions: Terminates all ongoing diagnostics and scans.\n\n"
+            "  - Stop All Functions: Terminates all ongoing diagnostics and scans.\n"
             "5. Operational Details\n"
             "- Send Ping: Uses system ping utility. Aggregates min/avg/max RTT, packet loss.\n"
             "- Show Route Table: route print (Windows) or netstat -rn (Unix).\n"
@@ -1331,14 +1328,15 @@ class NetworkToolApp:
             "- Divide Subnet: Accepts CIDR, prompts for number of subnets, displays results.\n"
             "- Auto Network Health Report (PDF): Runs all diagnostics, generates PDF (Desktop).\n"
             "- Reset Output & Input: Clears output and search bar.\n"
-            "- Stop All Functions: Halts all running threads and diagnostics.\n\n"
+            "- Stop All Functions: Halts all running threads and diagnostics.\n"
             "6. Best Practices & Notes\n"
             "• Always enter a valid IP/domain before running any function.\n"
             "• For accurate results, run as administrator.\n"
             "• Use bandwidth and port scan features responsibly; avoid scanning unauthorized hosts.\n"
             "• All diagnostics are performed on the entered target only—no local defaults.\n"
             "• For support: arunimpandey2903@hotmail.com\n"
-            "• Formula Used by speed.hetzner.de : Bandwidth (Mbps) = (Total Bytes Downloaded * 8) / (Elapsed Time in seconds * 1,000,000)\n\n"
+            "• If Ping’s dead or blocked, don’t expect fireworks — the Graph button will just sit there, silently judging you with a blank screen. We don’t run the remote machine’s firewall, so if it wants to be antisocial... well, that's on them.\n"
+            "• Formula Used by speed.hetzner.de to calculate bandwidth : Bandwidth (Mbps) = (Total Bytes Downloaded * 8) / (Elapsed Time in seconds * 1,000,000)\n"
             "Reference Articles\n"
             "• GeekForGeeks: IPv4 Overview\n"
             "• GeekForGeeks: IPv6 Overview\n"
@@ -1349,15 +1347,16 @@ class NetworkToolApp:
         )
         self.graph_text.config(state=tk.NORMAL)
         self.graph_text.delete("1.0", tk.END)
-        # Define color tags for headings, topics, script/command lines, and links
-        self.graph_text.tag_configure("main_heading", font=("Segoe UI", 16, "bold"), foreground="#005a9e", spacing3=8)
-        self.graph_text.tag_configure("sub_heading", font=("Segoe UI", 13, "bold"), foreground="#228b22", spacing3=4)
-        self.graph_text.tag_configure("topic", font=("Segoe UI", 11, "bold"), foreground="#4B0082")
-        self.graph_text.tag_configure("bullet", font=("Segoe UI", 11), foreground="#007acc")
-        self.graph_text.tag_configure("body", font=("Segoe UI", 11), foreground="#23272e")
-        self.graph_text.tag_configure("footer", font=("Segoe UI", 10, "italic"), foreground="#b22222")
-        self.graph_text.tag_configure("command", font=("Lucida Console", 11, "italic"), foreground="#b45f06")
-        self.graph_text.tag_configure("link", font=("Segoe UI", 11, "underline"), foreground="#005a9e")
+
+        # Professional, formal font and color scheme
+        self.graph_text.tag_configure("heading", font=("Calibri", 15, "bold underline"), foreground="#003366", spacing3=8)
+        self.graph_text.tag_configure("subheading", font=("Calibri", 12, "bold"), foreground="#005a9e", spacing3=4)
+        self.graph_text.tag_configure("topic", font=("Calibri", 11, "bold"), foreground="#1a237e")  # <-- remove underline here
+        self.graph_text.tag_configure("body", font=("Calibri", 11), foreground="#23272e")
+        self.graph_text.tag_configure("bullet", font=("Calibri", 11), foreground="#005a9e")
+        self.graph_text.tag_configure("footer", font=("Calibri", 10, "italic"), foreground="#b22222")
+        self.graph_text.tag_configure("command", font=("Consolas", 11, "italic"), foreground="#b45f06")
+        self.graph_text.tag_configure("link", font=("Calibri", 11, "underline"), foreground="#005a9e")
 
         import re
         lines = doc.splitlines()
@@ -1366,7 +1365,6 @@ class NetworkToolApp:
             re.IGNORECASE
         )
 
-        # Mapping for link text to URLs
         link_map = {
             "GeekForGeeks: IPv4 Overview": "https://www.geeksforgeeks.org/computer-networks/what-is-ipv4/",
             "GeekForGeeks: IPv6 Overview": "https://www.geeksforgeeks.org/computer-networks/internet-protocol-version-6-ipv6/",
@@ -1384,49 +1382,39 @@ class NetworkToolApp:
             self.graph_text.tag_bind(url, "<Button-1>", lambda e, link=url: webbrowser.open(link))
 
         for line in lines:
-            tag = None
-            if line.startswith("Technical SOP & Documentation"):
-                tag = "main_heading"
-            elif line.startswith("Version:"):
-                tag = "footer"
-            elif line.strip() and line[0].isdigit() and line[1] == '.':
-                tag = "sub_heading"
-            elif line.startswith("A.") or line.startswith("B."):
-                tag = "topic"
-            elif line.startswith("•") or line.startswith("- "):
-                tag = "bullet"
-            elif line.startswith("Reference Articles"):
-                tag = "sub_heading"
-            elif line.startswith("  - "):
-                tag = "bullet"
-            else:
-                tag = "body"
-
-            # Check for reference article links and encapsulate as clickable topic
-            link_inserted = False
-            for link_text, url in link_map.items():
-                if line.strip() == f"• {link_text}":
-                    self.graph_text.insert(tk.END, "• ", "bullet")
-                    insert_link(link_text, url)
-                    self.graph_text.insert(tk.END, "\n\n")
-                    link_inserted = True
-                    break
-            if link_inserted:
+            stripped = line.strip()
+            if not stripped:
+                self.graph_text.insert(tk.END, "\n")
                 continue
-
-            # Insert line with one line space, highlighting commands
-            start_idx = 0
-            for match in command_pattern.finditer(line):
-                cmd_start, cmd_end = match.span()
-                # Insert text before command
-                if cmd_start > start_idx:
-                    self.graph_text.insert(tk.END, line[start_idx:cmd_start], tag)
-                # Insert command with script font/color
-                self.graph_text.insert(tk.END, line[cmd_start:cmd_end], "command")
-                start_idx = cmd_end
-            # Insert any remaining text after last command
-            self.graph_text.insert(tk.END, line[start_idx:], tag)
-            self.graph_text.insert(tk.END, "\n\n")  # One line space after each line
+            # Headings
+            if stripped.startswith("Technical SOP & Documentation"):
+                self.graph_text.insert(tk.END, line + "\n", "heading")
+            elif re.match(r"^\d+\.", stripped):
+                self.graph_text.insert(tk.END, line + "\n", "subheading")
+            elif stripped.startswith("Version:"):
+                self.graph_text.insert(tk.END, line + "\n", "topic")
+            elif stripped.startswith("🔧") or stripped.startswith("🖼️"):
+                self.graph_text.insert(tk.END, line + "\n", "topic")
+            elif stripped.startswith("Reference Articles"):
+                self.graph_text.insert(tk.END, line + "\n", "subheading")
+            # Bullets and links
+            elif stripped.startswith("• "):
+                is_link = False
+                for link_text, url in link_map.items():
+                    if stripped == f"• {link_text}":
+                        self.graph_text.insert(tk.END, "• ", "bullet")
+                        insert_link(link_text, url)
+                        self.graph_text.insert(tk.END, "\n")
+                        is_link = True
+                        break
+                if not is_link:
+                    self.graph_text.insert(tk.END, line + "\n", "bullet")
+            # Command/script lines
+            elif command_pattern.search(line):
+                self.graph_text.insert(tk.END, line + "\n", "command")
+            # Default body
+            else:
+                self.graph_text.insert(tk.END, line + "\n", "body")
 
         self.graph_text.config(state=tk.DISABLED)
 
@@ -1607,5 +1595,17 @@ class NetworkToolApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    try:
+        # Use .ico for Windows, .png for others if available
+        import sys, os
+        icon_path_ico = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        icon_path_png = os.path.join(os.path.dirname(__file__), 'icon.png')
+        if sys.platform.startswith('win') and os.path.exists(icon_path_ico):
+            root.iconbitmap(icon_path_ico)
+        elif os.path.exists(icon_path_png):
+            img = tk.PhotoImage(file=icon_path_png)
+            root.iconphoto(True, img)
+    except Exception:
+        pass
     app = NetworkToolApp(root)
     root.mainloop()
