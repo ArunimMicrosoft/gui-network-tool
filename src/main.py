@@ -1,3 +1,4 @@
+# --- Imports ---
 import matplotlib
 matplotlib.use('Agg')
 
@@ -23,7 +24,6 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Image, Pref
 from reportlab.lib.enums import TA_CENTER
 
 class ToolTip:
-    """Tooltip for Tkinter widgets."""
     def __init__(self, widget, text):
         self.widget = widget
         self.text = text
@@ -53,12 +53,13 @@ class ToolTip:
         self.tipwindow = None
 
 class NetworkToolApp:
-    """Main application class for the Network Utility tool."""
-
     def __init__(self, master):
         self.master = master
         self.master.title("Network Utility by Arunim Pandey")
-        self.master.geometry("1000x700")
+        try:
+            self.master.state("zoomed")  # Maximize on Windows
+        except Exception:
+            self.master.geometry("1200x800")
         self._setup_icon()
         self._setup_layout()
         self._setup_buttons()
@@ -67,7 +68,6 @@ class NetworkToolApp:
         self.max_points = 60
 
     def _setup_icon(self):
-        """Set application window icon based on OS."""
         icon_path_ico = os.path.join(os.path.dirname(__file__), 'icon.ico')
         icon_path_png = os.path.join(os.path.dirname(__file__), 'icon.png')
         try:
@@ -80,7 +80,6 @@ class NetworkToolApp:
             pass
 
     def _setup_layout(self):
-        """Initialize and pack all main frames and widgets."""
         self.header = tk.Label(
             self.master, text="Network Utility",
             font=("Comic Sans MS", 22, "bold"),
@@ -91,22 +90,61 @@ class NetworkToolApp:
 
         self.content_frame = tk.Frame(self.master)
         self.content_frame.pack(fill=tk.BOTH, expand=True)
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        self.content_frame.grid_columnconfigure(1, weight=1)
 
-        self.left_frame = tk.Frame(self.content_frame, bg="#e6eaf0", bd=2, relief=tk.GROOVE, width=260)
-        self.left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(10, 0), pady=10)
-        self.left_frame.pack_propagate(False)
+        LEFT_PANEL_WIDTH = 320
+
+        self.left_frame_container = tk.Frame(
+            self.content_frame, bg="#e6eaf0", bd=2, relief=tk.GROOVE, width=LEFT_PANEL_WIDTH
+        )
+        self.left_frame_container.grid(row=0, column=0, sticky="ns")
+        self.left_frame_container.pack_propagate(False)
+
+        self.left_canvas = tk.Canvas(
+            self.left_frame_container, bg="#e6eaf0", highlightthickness=0, width=LEFT_PANEL_WIDTH
+        )
+        self.left_scrollbar = tk.Scrollbar(
+            self.left_frame_container, orient="vertical", command=self.left_canvas.yview
+        )
+        self.left_canvas.configure(yscrollcommand=self.left_scrollbar.set)
+
+        self.left_scrollable_frame = tk.Frame(self.left_canvas, bg="#e6eaf0")
+        self.left_scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.left_canvas.configure(
+                scrollregion=self.left_canvas.bbox("all")
+            )
+        )
+        self.left_canvas.create_window((0, 0), window=self.left_scrollable_frame, anchor="nw", width=LEFT_PANEL_WIDTH)
+
+        self.left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_frame = self.left_scrollable_frame
+
+        def _on_mousewheel(event):
+            if sys.platform == 'darwin':
+                self.left_canvas.yview_scroll(-1 * int(event.delta), "units")
+            else:
+                self.left_canvas.yview_scroll(-1 * int(event.delta / 120), "units")
+        self.left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        self.left_canvas.bind_all("<Button-4>", lambda e: self.left_canvas.yview_scroll(-1, "units"))
+        self.left_canvas.bind_all("<Button-5>", lambda e: self.left_canvas.yview_scroll(1, "units"))
 
         self.right_frame = tk.Frame(self.content_frame)
-        self.right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=0, pady=10)
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=0, pady=(10, 0))
+        self.right_frame.grid_rowconfigure(1, weight=1)
+        self.right_frame.grid_columnconfigure(0, weight=1)
 
         self.search_frame = tk.Frame(self.right_frame, bg="#F0F8FF")
-        self.search_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 10), anchor="center")
+        self.search_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self.search_frame.grid_columnconfigure(0, weight=1)
         self.entry = tk.Entry(
             self.search_frame, font=("Comic Sans MS", 16),
             bg="#FFF8DC", fg="#888888", relief=tk.GROOVE, bd=3,
             width=40, justify="center"
         )
-        self.entry.pack(padx=10, pady=5, fill=tk.X, expand=True)
+        self.entry.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
         self.entry.insert(0, "Enter IP/domain to diagnose")
         self.entry_is_watermark = True
         self.entry.bind("<FocusIn>", self._on_entry_focus_in)
@@ -116,8 +154,6 @@ class NetworkToolApp:
             self.right_frame, bg="#ffffff", fg="#000000",
             font=("Consolas", 11), wrap=tk.NONE
         )
-        self.graph_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.graph_text.config(state=tk.DISABLED)
 
         self.graph_canvas = tk.Canvas(
             self.right_frame, bg="#ffffff", height=300
@@ -126,9 +162,9 @@ class NetworkToolApp:
 
         self.footer = tk.Label(
             self.master,
-            text="Network Utility | ©Built by Arunim Pandey| Suggestions:arunimpandey2903@hotmail.com | Version: 1.4.2(Revised) Release 30 June 2025",
-            font=("Comic Sans MS", 11, "bold italic"),
-            fg="#fff", bg="#4B0082", pady=8, bd=2, relief=tk.RIDGE
+            text="Network Utility | © Arunim Pandey | Suggestions: arunimpandey2903@hotmail.com | v1.5.2 (30 June 2025)",
+            font=("Comic Sans MS", 9, "italic"),
+            fg="#fff", bg="#4B0082", pady=2, bd=1, relief=tk.RIDGE
         )
         self.footer.pack(side=tk.BOTTOM, fill=tk.X)
 
@@ -145,13 +181,12 @@ class NetworkToolApp:
             self.entry_is_watermark = True
 
     def _setup_buttons(self):
-        """Create and grid all main function buttons."""
         btn_style = {
-            "font": ("Consolas", 13, "bold"),
+            "font": ("Consolas", 11, "bold"),
             "bg": "#23272e", "fg": "#ffffff",
             "activebackground": "#3a4050", "activeforeground": "#ffffff",
-            "relief": tk.RAISED, "bd": 2, "width": 32, "cursor": "hand2",
-            "anchor": "center", "justify": "center", "padx": 14, "pady": 8, "wraplength": 320
+            "relief": tk.RAISED, "bd": 2, "cursor": "hand2",
+            "anchor": "center", "justify": "center", "padx": 6, "pady": 5, "wraplength": 240
         }
         stop_btn_style = btn_style.copy()
         stop_btn_style.update({"bg": "#b22222", "fg": "#fff", "activebackground": "#e57373"})
@@ -175,27 +210,30 @@ class NetworkToolApp:
             self.left_frame, text="Auto Network Health Report (PDF)",
             command=self.generate_network_health_report,
             bg="#005a9e", fg="#fff", activebackground="#007acc",
-            font=("Consolas", 13, "bold"), width=32, relief=tk.RAISED, bd=2,
-            cursor="hand2", anchor="center", justify="center", padx=14, pady=8, wraplength=320
+            font=("Consolas", 11, "bold"), relief=tk.RAISED, bd=2,
+            cursor="hand2", anchor="center", justify="center", padx=6, pady=5, wraplength=240
         )
         self.help_button = tk.Button(
             self.left_frame, text="Technical Help & Documentation",
             command=self.show_technical_documentation, **help_btn_style
+        )
+        self.testnetconn_button = tk.Button(
+            self.left_frame, text="Test-NetConnection (Port Check)",
+            command=self.run_test_netconnection, **btn_style
         )
 
         buttons = [
             self.send_button, self.route_button, self.geoasn_button, self.nexthop_button,
             self.pcap_button, self.portscan_button, self.speedtest_button,
             self.subnet_button, self.pinggraph_toggle_button,
+            self.testnetconn_button,
             self.stopall_button, self.reset_button, self.health_report_button,
             self.help_button
         ]
-        for i, btn in enumerate(buttons):
-            btn.grid(row=i, column=0, sticky="ew", padx=8, pady=4)
-        self.left_frame.grid_rowconfigure(len(buttons), weight=1)
+        for btn in buttons:
+            btn.pack(fill=tk.X, expand=False, padx=4, pady=2)
 
     def _setup_tooltips(self):
-        """Attach tooltips to main buttons."""
         ToolTip(self.send_button, "Ping the entered host or IP! 🏓")
         ToolTip(self.portscan_button, "Scan for open ports on the target! 🔍")
         ToolTip(self.pinggraph_toggle_button, "Start a real-time ping graph! 📈")
@@ -203,102 +241,60 @@ class NetworkToolApp:
         ToolTip(self.reset_button, "Clear the canvas and search bar! 🧹")
         ToolTip(self.stopall_button, "Stop all running operations! 🛑")
         ToolTip(self.subnet_button, "Divide a network into smaller subnets! 🧩")
+        ToolTip(self.testnetconn_button, "Check TCP port connectivity using PowerShell's Test-NetConnection! 🧪")
 
-    def on_canvas_resize(self, event):
-        if getattr(self, "pinggraph_running", False) and self.pings:
-            self.draw_ping_graph()
+    def run_test_netconnection(self):
+        import tkinter.simpledialog as sd
+        import platform
+        import subprocess
 
-    def update_graph_text(self, text, tags=None):
-        self.show_text()
-        self.clear_watermark()
-        self.graph_text.config(state=tk.NORMAL)
-        self.graph_text.delete("1.0", tk.END)
-        self.graph_text.tag_configure("header", font=("Consolas", 14, "bold"), foreground="#005a9e")
-        self.graph_text.tag_configure("important", font=("Consolas", 12, "bold"), foreground="#b22222")
-        self.graph_text.tag_configure("success", font=("Consolas", 12, "bold"), foreground="#228b22")
-        self.graph_text.tag_configure("info", font=("Consolas", 11, "bold"), foreground="#007acc")
-        self.graph_text.tag_configure("default", font=("Consolas", 11), foreground="#23272e")
-        self.graph_text.tag_configure("witty", font=("Comic Sans MS", 11, "italic"), foreground="#ff8800")
-        self.graph_text.tag_configure("footer", font=("Consolas", 10, "italic"), foreground="#4B0082")
-        lines = text.splitlines()
-        for line in lines:
-            tag = "default"
-            if "error" in line.lower() or "fail" in line.lower():
-                tag = "important"
-            elif "success" in line.lower() or "open" in line.lower() or "complete" in line.lower():
-                tag = "success"
-            elif "ping statistics" in line.lower() or "scan" in line.lower() or "report" in line.lower():
-                tag = "header"
-            elif "stop" in line.lower() or "stopped" in line.lower():
-                tag = "important"
-            elif "waiting" in line.lower() or "please wait" in line.lower():
-                tag = "info"
-            elif "wizard" in line.lower() or "gnomes" in line.lower() or "🍕" in line or "🧙" in line or "🦄" in line:
-                tag = "witty"
-            elif "network utility" in line.lower():
-                tag = "footer"
-            self.graph_text.insert(tk.END, line + "\n", tag)
-        self.graph_text.config(state=tk.DISABLED)
+        host = self.entry.get().strip()
+        if not host or host.lower() == "enter ip/domain to diagnose":
+            self.update_graph_text("Please enter a host or IP in the search bar.")
+            return
 
-    def draw_ping_graph(self):
-        self.show_canvas()
-        width = self.graph_canvas.winfo_width()
-        height = self.graph_canvas.winfo_height()
-        margin = 40
-        max_points = self.max_points
-        pings = self.pings[-max_points:]
+        port = sd.askinteger("Test-NetConnection", "Enter TCP port number to check:", minvalue=1, maxvalue=65535)
+        if not port:
+            self.update_graph_text("No port number entered.")
+            return
 
-        self.graph_canvas.delete("all")
-        self.graph_canvas.create_line(margin, height - margin, width - margin, height - margin, fill="#888", width=2)
-        self.graph_canvas.create_line(margin, margin, margin, height - margin, fill="#888", width=2)
+        self.update_graph_text(
+            f"Running Test-NetConnection for {host} on port {port}...\nPlease wait..."
+        )
 
-        valid_pings = [p for p in pings if p is not None]
-        if valid_pings:
-            min_ping = min(valid_pings)
-            max_ping = max(valid_pings)
-            if min_ping == max_ping:
-                min_ping = max_ping - 1
-            span = max(max_ping - min_ping, 1)
-            plot_width = width - 2 * margin
-            plot_height = height - 2 * margin
+        def testnet_task():
+            try:
+                if platform.system().lower() == "windows":
+                    cmd = [
+                        "powershell",
+                        "-Command",
+                        f"Test-NetConnection -ComputerName \"{host}\" -Port {port}"
+                    ]
+                    output = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+                else:
+                    output = f"Test-NetConnection is only available on Windows.\n"
+                    output += f"Trying to connect to {host}:{port} using Python socket...\n"
+                    import socket
+                    try:
+                        with socket.create_connection((host, port), timeout=3):
+                            output += f"TCP port {port} on {host} is OPEN.\n"
+                    except Exception as e:
+                        output += f"TCP port {port} on {host} is CLOSED or unreachable.\nError: {e}"
+                self.update_graph_text(output)
+            except Exception as e:
+                self.update_graph_text(f"Test-NetConnection failed:\n{e}")
 
-            n = len(pings)
-            if n > 1:
-                x_spacing = plot_width / (max_points - 1)
-                x_offset = margin + ((max_points - n) * x_spacing) / 2
-            else:
-                x_spacing = plot_width
-                x_offset = margin + plot_width / 2
-
-            prev_x, prev_y = None, None
-            for i, val in enumerate(pings):
-                if val is not None:
-                    x = x_offset + i * x_spacing
-                    y = height - margin - int((val - min_ping) / span * plot_height)
-                    color = "#39C800" if val < 60 else "#FFD700" if val < 150 else "#FF5555"
-                    self.graph_canvas.create_oval(x-4, y-4, x+4, y+4, fill=color, outline=color)
-                    if prev_x is not None and prev_y is not None:
-                        self.graph_canvas.create_line(prev_x, prev_y, x, y, fill=color, width=3)
-                    prev_x, prev_y = x, y
-
-            self.graph_canvas.create_text(margin//2, margin, text=f"{max_ping:.1f} ms", anchor="w", fill="#b22222", font=("Consolas", 12, "bold"))
-            self.graph_canvas.create_text(margin//2, height-margin, text=f"{min_ping:.1f} ms", anchor="w", fill="#228b22", font=("Consolas", 12, "bold"))
-        else:
-            self.graph_canvas.create_text(width//2, height//2, text="Waiting for ping data...", fill="#888", font=("Consolas", 16, "bold italic"))
-
-        self.graph_canvas.create_text(width//2, 28, text="🖧 PING LATENCY GRAPH 🖧", fill="#005a9e", font=("Consolas", 18, "bold"))
-        if pings:
-            last_ping = pings[-1] if pings[-1] is not None else 'timeout'
-        else:
-            last_ping = 'N/A'
-        color = "#228b22" if isinstance(last_ping, (int, float)) and last_ping < 60 else "#FFD700" if isinstance(last_ping, (int, float)) and last_ping < 150 else "#FF5555"
-        self.graph_canvas.create_text(width//2, height-18, text=f"Last: {last_ping} ms", fill=color, font=("Consolas", 14, "bold"))
+        threading.Thread(target=testnet_task, daemon=True).start()
 
     def send_ping(self):
         host = self.entry.get().strip()
         if not host or host.lower() == "enter ip/domain to diagnose":
             self.show_text()
             self.update_graph_text("Please enter a host or IP in the search bar.")
+            return
+        if self._is_localhost(host):
+            self.show_text()
+            self.update_graph_text("Diagnostics for localhost are not allowed. Please enter a public IP or FQDN.")
             return
         import platform
         import subprocess
@@ -372,6 +368,9 @@ class NetworkToolApp:
         if not host or host.lower() == "enter ip/domain to diagnose":
             self.update_graph_text("Please enter a host or IP in the search bar.")
             return
+        if self._is_localhost(host):
+            self.update_graph_text("Geo & ASN lookup for localhost is not allowed. Please enter a public IP or FQDN.")
+            return
         self.update_graph_text("This process could take a few seconds...\nFetching Geo & ASN info...")
 
         def geoasn_task():
@@ -412,6 +411,10 @@ class NetworkToolApp:
         if not host or host.lower() == "enter ip/domain to diagnose":
             self.show_text()
             self.update_graph_text("Please enter a host or IP in the search bar.")
+            return
+        if self._is_localhost(host):
+            self.show_text()
+            self.update_graph_text("Next hops for localhost are not allowed. Please enter a public IP or FQDN.")
             return
         self.show_text()
         self.update_graph_text("Tracing route (up to 5 hops)...\nThis may take a few seconds...")
@@ -487,6 +490,9 @@ class NetworkToolApp:
         if not host or host.lower() == "enter ip/domain to diagnose":
             self.update_graph_text("Please enter a host or IP in the search bar.")
             return
+        if self._is_localhost(host):
+            self.update_graph_text("Packet capture for localhost is not allowed. Please enter a public IP or FQDN.")
+            return
         self.update_graph_text(
             f"[Advanced Packet Capture]\n\nCollecting active connections for {host}...\n(This may take a few seconds)"
         )
@@ -530,6 +536,9 @@ class NetworkToolApp:
         host = self.entry.get().strip()
         if not host:
             self.update_graph_text("Please enter a host or IP.")
+            return
+        if self._is_localhost(host):
+            self.update_graph_text("Port scan for localhost is not allowed. Please enter a public IP or FQDN.")
             return
 
         witty_messages = [
@@ -642,6 +651,9 @@ class NetworkToolApp:
         if not host or host.lower() == "enter ip/domain to diagnose":
             self.update_graph_text("Please enter a host or IP.")
             return
+        if self._is_localhost(host):
+            self.update_graph_text("Ping graph for localhost is not allowed. Please enter a public IP or FQDN.")
+            return
 
         self.pinggraph_running = True
         self.stop_all_flag = False  # Ensure stop flag is reset
@@ -675,17 +687,14 @@ class NetworkToolApp:
 
     def toggle_ping_graph(self):
         if not hasattr(self, "pinggraph_running") or not self.pinggraph_running:
-            self.stop_all_flag = False  # Ensure stop flag is reset
+            self.stop_all_flag = False
             self.pinggraph_running = True
             self.pinggraph_toggle_button.config(text="Stop Ping Graph")
             self.start_ping_graph()
         else:
             self.pinggraph_running = False
             self.pinggraph_toggle_button.config(text="Start Ping Graph")
-            # Show the last graph
-            self.draw_ping_graph()  # Draw the last state of the graph
-
-            # Prepare summary
+            self.draw_ping_graph()
             valid_pings = [p for p in self.pings if p is not None]
             if valid_pings:
                 min_ping = min(valid_pings)
@@ -705,7 +714,6 @@ class NetworkToolApp:
             else:
                 summary = "[Ping Graph Summary]\n\nNo valid ping data collected."
 
-            # Show both the graph and the summary: keep canvas visible, show summary in text below
             self.graph_text.config(state=tk.NORMAL)
             self.graph_text.delete("1.0", tk.END)
             self.graph_text.tag_configure(
@@ -717,8 +725,9 @@ class NetworkToolApp:
             for line in summary.strip().splitlines():
                 self.graph_text.insert(tk.END, line.strip() + "\n", "centered")
             self.graph_text.config(state=tk.DISABLED)
-            self.graph_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            self.graph_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            # Use grid() instead of pack()
+            self.graph_canvas.grid(row=1, column=0, sticky="nsew")
+            self.graph_text.grid(row=2, column=0, sticky="nsew")
 
     def bandwidth_speed_test(self):
         import time
@@ -947,42 +956,38 @@ class NetworkToolApp:
             self.update_graph_text(random.choice(witty_errors))
 
     def generate_network_health_report(self):
-        import threading
-        import platform
-        import subprocess
-        import socket
-        import requests
-        from datetime import datetime
-        import os
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas as pdf_canvas
-        import time
-        import random
-        import matplotlib.pyplot as plt
-
-        witty_lines = [
-            "🛰️ Gathering packets from the digital ether...",
-            "🕵️‍♂️ Sniffing out open ports like a network detective...",
-            "🌐 Did you know? The first message sent over ARPANET was 'LO' (they meant to type 'LOGIN')!",
-            "From complexity to clarity — Arunim helps teams rise above.",
-            "📡 Pinging the internet's heartbeat...",
-            "💡 Fun fact: The word 'ping' comes from sonar technology!",
-            "🧑‍💻 Counting your packets so you don't have to.",
-            "Every time you doubt yourself, remember: Arunim was made to rise.",
-            "Bringing solutions with calm confidence — the Arunim standard.",
-            "🦾 Assembling your network health dossier...",
-            "🧙‍♂️ Summoning the spirits of TCP/IP...",
-            "🦉 Wise tip: Open ports are like open doors. Keep only what you need!",
-            "🦄 Networking is magic, but this report is real.",
-            "🚦 Checking your network traffic lights...",
-            "🧬 Networking fact: IPv6 has enough addresses for every grain of sand on Earth... and more!"
-        ]
-
         host = self.entry.get().strip()
         if not host:
             self.show_text()
             self.update_graph_text("Please enter a host or IP for the health report.")
             return
+        if self._is_localhost(host):
+            self.show_text()
+            self.update_graph_text("Network Health Report for localhost is not allowed. Please enter a public IP or FQDN.")
+            return
+
+        witty_lines = [
+            "🦾 Network engineers: turning chaos into connectivity since forever.",
+            "🧑‍💻 If it works, don't touch it. If it doesn't, blame the firewall.",
+            "🛰️ Real heroes don't wear capes—they configure routers.",
+            "🦄 Network magic: When a cable wiggle fixes everything.",
+            "🕵️‍♂️ Diagnosing networks: 10% skill, 90% ping.",
+            "🌐 If you can read this, thank a network engineer.",
+            "🧙‍♂️ Network engineers: Wizards of the wire.",
+            "🚦 Red light, green light—network traffic edition.",
+            "🧩 Subnetting: Because one network is never enough.",
+            "🦉 Wise network tip: Always check the physical layer first.",
+            "🔌 Unplugged it and plugged it back in? Certified engineer move.",
+            "🛠️ Network engineers: Making the internet less mysterious, one packet at a time.",
+            "📡 When in doubt, blame DNS.",
+            "🧬 Networking: Where every bit counts and every byte bites.",
+            "🦥 Slow network? Time for a coffee break (or two).",
+            "🦾 Automation is great—until you automate a typo.",
+            "🧑‍🔧 Network engineers: The real backbone of the digital world.",
+            "🦄 If only networks fixed themselves as fast as you can ping.",
+            "🧙‍♂️ Network spells: 'show run', 'ping', and 'why is this down?'",
+            "🧑‍💻 Behind every great connection is a network engineer who didn't give up.",
+        ]
 
         self.show_text()
         self.update_graph_text(
@@ -993,15 +998,6 @@ class NetworkToolApp:
 
         def report_task():
             try:
-                for i in range(3):
-                    self.show_text()
-                    self.update_graph_text(
-                        "[Network Health Report]\n\n" +
-                        random.choice(witty_lines) +
-                        "\n\nGenerating report and PDF...\nPlease wait..."
-                    )
-                    time.sleep(1.2)
-
                 ip = host
                 try:
                     ip = socket.gethostbyname(host)
@@ -1033,7 +1029,6 @@ class NetworkToolApp:
                         cmd = ["ping", "-c", "10", ip]
                     output = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.STDOUT)
                     report.append(output)
-                    # Extract ping times for graph
                     import re
                     for line in output.splitlines():
                         match = re.search(r'time[=<]?\s*([\d\.]+)\s*ms', line)
@@ -1146,11 +1141,11 @@ class NetworkToolApp:
                 # --- Draw ping graph on canvas ---
                 if ping_values:
                     self.pings = ping_values[-self.max_points:]
-                    self.draw_ping_graph()
-                    self.show_graph_and_text(full_report)
+                    self.master.after(0, self.draw_ping_graph)
+                    self.master.after(0, lambda: self.show_graph_and_text(full_report))
                 else:
-                    self.show_text()
-                    self.update_graph_text(full_report)
+                    self.master.after(0, self.show_text)
+                    self.master.after(0, lambda: self.update_graph_text(full_report))
 
                 # --- PDF Generation with ping graph ---
                 try:
@@ -1174,6 +1169,17 @@ class NetworkToolApp:
                         styles.add(ParagraphStyle(name='Footer', fontSize=9, leading=12, textColor=colors.HexColor("#4B0082"), fontName="Helvetica-Oblique", alignment=TA_CENTER))
                     if 'Fact' not in styles:
                         styles.add(ParagraphStyle(name='Fact', fontSize=11, leading=15, textColor=colors.HexColor("#ff8800"), fontName="Helvetica-Oblique"))
+                    # --- Add these funky styles ---
+                    if 'FunkyTitle' not in styles:
+                        styles.add(ParagraphStyle(name='FunkyTitle', fontSize=20, leading=24, textColor=colors.HexColor("#ff8800"), alignment=TA_CENTER, fontName="Helvetica-BoldOblique"))
+                    if 'FunkySection' not in styles:
+                        styles.add(ParagraphStyle(name='FunkySection', fontSize=14, leading=18, textColor=colors.HexColor("#4B0082"), fontName="Helvetica-Bold"))
+                    if 'FunkyBody' not in styles:
+                        styles.add(ParagraphStyle(name='FunkyBody', fontSize=11, leading=15, textColor=colors.HexColor("#228b22"), fontName="Courier-Bold"))
+                    if 'FunkyTip' not in styles:
+                        styles.add(ParagraphStyle(name='FunkyTip', fontSize=11, leading=14, textColor=colors.HexColor("#007acc"), fontName="Helvetica-Oblique"))
+                    if 'FunkyFooter' not in styles:
+                        styles.add(ParagraphStyle(name='FunkyFooter', fontSize=10, leading=12, textColor=colors.HexColor("#b22222"), alignment=TA_CENTER, fontName="Helvetica-BoldOblique"))
 
                     elements = []
                     elements.append(Paragraph("Network Health Report", styles['SectionHeader']))
@@ -1245,174 +1251,182 @@ class NetworkToolApp:
                     doc.build(elements)
 
                     # Show status and open PDF
-                    self.show_text()
-                    self.update_graph_text(
+                    self.master.after(0, self.show_text)
+                    self.master.after(0, lambda: self.update_graph_text(
                         full_report +
                         f"\n\nNetwork Health Report generated!\nSaved to:\n{pdf_path}\n\n"
                         "The PDF will open automatically.\n\n"
                         + random.choice(witty_lines)
-                    )
+                    ))
                     try:
                         import webbrowser
                         webbrowser.open(pdf_path)
                     except Exception:
                         pass
                 except Exception as e:
-                    self.show_text()
-                    self.update_graph_text(full_report + f"\n\nFailed to generate PDF: {e}")
+                    self.master.after(0, self.show_text)
+                    self.master.after(0, lambda: self.update_graph_text(full_report + f"\n\nFailed to generate PDF: {e}"))
 
             except Exception as e:
-                self.show_text()
-                self.update_graph_text(f"Failed to generate report:\n{e}")
+                self.master.after(0, self.show_text)
+                self.master.after(0, lambda: self.update_graph_text(f"Failed to generate report:\n{e}"))
 
         threading.Thread(target=report_task, daemon=True).start()
 
-    def show_canvas(self):
-        self.graph_text.pack_forget()
-        self.graph_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        # Remove axes from the ping graph when switching to canvas (functional button clicked)
-        self.graph_canvas.delete("all")
-
-    def show_text(self):
-        self.graph_canvas.pack_forget()
-        self.graph_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.graph_text.config(state=tk.NORMAL)
-        self.graph_text.delete("1.0", tk.END)
-        self.graph_text.config(state=tk.DISABLED)
-
-    def show_graph_and_text(self, text):
-        self.graph_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.graph_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.graph_text.config(state=tk.NORMAL)
-        self.graph_text.delete("1.0", tk.END)
-        self.graph_text.insert(tk.END, text)
-        self.graph_text.config(state=tk.DISABLED)
-
-    def show_route_table(self):
-        host = self.entry.get().strip()
-        if not host or host.lower() == "enter ip/domain to diagnose":
-            self.update_graph_text("Please enter a host or IP in the search bar.")
-            return
-        self.update_graph_text("This process could take a few seconds...\nFetching route table, please wait...")
-
-        def route_task():
-            if platform.system().lower() == "windows":
-                command = ["route", "print"]
-            else:
-                command = ["netstat", "-rn"]
-            try:
-                output = subprocess.check_output(command, universal_newlines=True, stderr=subprocess.STDOUT)
-            except Exception as e:
-                output = f"Failed to get route table:\n{e}"
-            self.update_graph_text(output)
-        threading.Thread(target=route_task, daemon=True).start()
-
     def show_technical_documentation(self):
-        self.show_text()
+        """Display technical SOP and documentation in the output area with colored headings, topics, and clickable reference links."""
+        import webbrowser
+        self.show_text()  # Ensure the text widget is visible
+
+        # Set word wrap for the text widget to ensure long lines are wrapped
+        self.graph_text.config(wrap=tk.WORD)
+
+        doc = (
+            "Technical SOP & Documentation\n"
+            "Version: 1.5.2 (Revised) Release — Date: 30 June 2025\n"
+            "🔧 Version 1.5.2 Update: Say hello to the new Test-NetConnection button — because real pros test ports with style. No more typing commands like it’s 1999. Just click, connect, and consider your network officially interrogated.\n"
+            "🖼️ GUI now stretches, shrinks, and flexes like a yoga master—thanks to Tkinter's grid, pack, and propagate magic. Resize away, your network tools will always look sharp!\n\n"
+            "1. Product Overview\n"
+            "Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting.\n"
+            "It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.\n\n"
+            "2. System Requirements\n"
+            "• OS: Windows 10/11, Windows Server 2012–2022\n"
+            "• Python: 3.8+ (for source version)\n"
+            "• Dependencies: requests, reportlab, tkinter (standard with Python)\n"
+            "• Privileges: Administrator recommended for full netstat/route access\n"
+            "• Network: Internet required for GeoIP, ASN, and speed test features\n\n"
+            "3. Installation\n"
+            "A. Standalone Executable:\n"
+            "   - Download the .exe file and double-click to launch. No Python required.\n"
+            "B. From Source:\n"
+            "   1. Install Python 3.8+ from python.org\n"
+            "   2. Install dependencies:\n"
+            "      pip install requests reportlab\n"
+            "   3. Run:\n"
+            "      python src/main.py\n\n"
+            "4. Functional Overview\n"
+            "All diagnostics and reports are scoped to the IP/domain entered in the search bar.\n"
+            "Buttons:\n"
+            "  - Send Ping: ICMP echo request to target. Live RTT, packet loss, summary stats.\n"
+            "  - Show Route Table: Displays local routing table (route print/netstat -rn).\n"
+            "  - Geo & ASN Lookup: Queries public APIs for geolocation and ASN data.\n"
+            "  - Show Next Hops: Traceroute (5 hops) to target.\n"
+            "  - Advanced Packet Capture: Shows active TCP/UDP connections for the target.\n"
+            "  - Port Scan Capture: TCP connect scan of all ports. Live progress.\n"
+            "  - Bandwidth Speed Test: Download/upload speed using speed.hetzner.de.\n"
+            "  - Start Ping Graph: Real-time RTT plot for the target.\n"
+            "  - Divide Subnet: Splits entered CIDR into user-defined subnets.\n"
+            "  - Auto Network Health Report (PDF): Aggregates diagnostics into a PDF report.\n"
+            "  - Reset Output & Input: Clears output and search bar.\n"
+            "  - Stop All Functions: Terminates all ongoing diagnostics and scans.\n\n"
+            "5. Operational Details\n"
+            "- Send Ping: Uses system ping utility. Aggregates min/avg/max RTT, packet loss.\n"
+            "- Show Route Table: route print (Windows) or netstat -rn (Unix).\n"
+            "- Geo & ASN Lookup: Uses ipinfo.io API. Requires internet.\n"
+            "- Show Next Hops: tracert/traceroute for up to 5 hops.\n"
+            "- Advanced Packet Capture: netstat -ano/-tunap, filtered for target.\n"
+            "- Port Scan Capture: TCP connect scan on all ports (1–65535). May take several minutes.\n"
+            "- Bandwidth Speed Test: Downloads 100MB from speed.hetzner.de. Upload via httpbin.org.\n"
+            "- Start Ping Graph: Plots real-time RTT values.\n"
+            "- Divide Subnet: Accepts CIDR, prompts for number of subnets, displays results.\n"
+            "- Auto Network Health Report (PDF): Runs all diagnostics, generates PDF (Desktop).\n"
+            "- Reset Output & Input: Clears output and search bar.\n"
+            "- Stop All Functions: Halts all running threads and diagnostics.\n\n"
+            "6. Best Practices & Notes\n"
+            "• Always enter a valid IP/domain before running any function.\n"
+            "• For accurate results, run as administrator.\n"
+            "• Use bandwidth and port scan features responsibly; avoid scanning unauthorized hosts.\n"
+            "• All diagnostics are performed on the entered target only—no local defaults.\n"
+            "• For support: arunimpandey2903@hotmail.com\n"
+            "• Formula Used by speed.hetzner.de : Bandwidth (Mbps) = (Total Bytes Downloaded * 8) / (Elapsed Time in seconds * 1,000,000)\n\n"
+            "Reference Articles\n"
+            "• GeekForGeeks: IPv4 Overview\n"
+            "• GeekForGeeks: IPv6 Overview\n"
+            "• Microsoft Docs: Ping Command\n"
+            "• Microsoft Docs: Tracert Command\n"
+            "• Microsoft Docs: Netstat Command\n"
+            "• Microsoft Docs: Route Print\n"
+        )
         self.graph_text.config(state=tk.NORMAL)
         self.graph_text.delete("1.0", tk.END)
+        # Define color tags for headings, topics, script/command lines, and links
+        self.graph_text.tag_configure("main_heading", font=("Segoe UI", 16, "bold"), foreground="#005a9e", spacing3=8)
+        self.graph_text.tag_configure("sub_heading", font=("Segoe UI", 13, "bold"), foreground="#228b22", spacing3=4)
+        self.graph_text.tag_configure("topic", font=("Segoe UI", 11, "bold"), foreground="#4B0082")
+        self.graph_text.tag_configure("bullet", font=("Segoe UI", 11), foreground="#007acc")
+        self.graph_text.tag_configure("body", font=("Segoe UI", 11), foreground="#23272e")
+        self.graph_text.tag_configure("footer", font=("Segoe UI", 10, "italic"), foreground="#b22222")
+        self.graph_text.tag_configure("command", font=("Lucida Console", 11, "italic"), foreground="#b45f06")
+        self.graph_text.tag_configure("link", font=("Segoe UI", 11, "underline"), foreground="#005a9e")
 
-        # Set a consistent, readable font for all text in the canvas
-        self.graph_text.configure(font=("Segoe UI", 12), spacing1=2, spacing3=4)
+        import re
+        lines = doc.splitlines()
+        command_pattern = re.compile(
+            r"\b(pip install [\w\- ]+|python [\w\./\\\-]+|route print|netstat -rn|tracert|traceroute|netstat -ano|netstat -tunap|Test-NetConnection[^\n]*|ping[^\n]*|ifconfig|ipconfig|python\.org|speed\.hetzner\.de|httpbin\.org|requests|reportlab|tkinter)\b",
+            re.IGNORECASE
+        )
 
-        # Tag configuration for styling
-        self.graph_text.tag_configure("banner", font=("Comic Sans MS", 22, "bold"), foreground="#ffffff", background="#4B0082", justify="center", spacing3=12, lmargin1=0, lmargin2=0)
-        self.graph_text.tag_configure("heading", font=("Segoe UI", 16, "bold"), foreground="#4B0082", spacing3=8)
-        self.graph_text.tag_configure("subheading", font=("Segoe UI", 13, "bold"), foreground="#005a9e", spacing3=4)
-        self.graph_text.tag_configure("command", font=("Consolas", 12, "bold"), foreground="#228b22", background="#f0f0f0")
-        self.graph_text.tag_configure("note", font=("Segoe UI", 12, "italic"), foreground="#b22222")
-        self.graph_text.tag_configure("normal", font=("Segoe UI", 12), foreground="#23272e")
-        self.graph_text.tag_configure("bullet", font=("Segoe UI", 12), foreground="#007acc")
-        self.graph_text.tag_configure("footer", font=("Segoe UI", 10, "italic"), foreground="#4B0082")
-        self.graph_text.tag_configure("link", foreground="#005a9e", underline=True, font=("Segoe UI", 12, "underline"))
+        # Mapping for link text to URLs
+        link_map = {
+            "GeekForGeeks: IPv4 Overview": "https://www.geeksforgeeks.org/computer-networks/what-is-ipv4/",
+            "GeekForGeeks: IPv6 Overview": "https://www.geeksforgeeks.org/computer-networks/internet-protocol-version-6-ipv6/",
+            "Microsoft Docs: Ping Command": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ping",
+            "Microsoft Docs: Tracert Command": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/tracert",
+            "Microsoft Docs: Netstat Command": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netstat",
+            "Microsoft Docs: Route Print": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/route_ws2008",
+        }
 
-        def insert(text, tag="normal"):
-            self.graph_text.insert(tk.END, text + "\n", tag)
+        def insert_link(text, url):
+            start = self.graph_text.index(tk.INSERT)
+            self.graph_text.insert(tk.END, text, ("link",))
+            end = self.graph_text.index(tk.INSERT)
+            self.graph_text.tag_add(url, start, end)
+            self.graph_text.tag_bind(url, "<Button-1>", lambda e, link=url: webbrowser.open(link))
 
-        # Reference links for the bottom section (updated for retired docs)
-        reference_links = [
-            ("GeekForGeeks: IPv4 Overview", "https://www.geeksforgeeks.org/what-is-ipv4/"),
-            ("GeekForGeeks: IPv6 Overview", "https://www.geeksforgeeks.org/what-is-ipv6/"),
-            ("Microsoft Docs: Ping Command", "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ping"),
-            ("Microsoft Docs: Tracert Command", "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/tracert"),
-            ("Microsoft Docs: Netstat Command", "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netstat"),
-            ("Microsoft Docs: Route Print", "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/route_ws2008"),
-        ]
+        for line in lines:
+            tag = None
+            if line.startswith("Technical SOP & Documentation"):
+                tag = "main_heading"
+            elif line.startswith("Version:"):
+                tag = "footer"
+            elif line.strip() and line[0].isdigit() and line[1] == '.':
+                tag = "sub_heading"
+            elif line.startswith("A.") or line.startswith("B."):
+                tag = "topic"
+            elif line.startswith("•") or line.startswith("- "):
+                tag = "bullet"
+            elif line.startswith("Reference Articles"):
+                tag = "sub_heading"
+            elif line.startswith("  - "):
+                tag = "bullet"
+            else:
+                tag = "body"
 
-        # Banner and main content as before...
-        insert(" Network Utility by Arunim Pandey ", "banner")
-        insert("Technical SOP & Documentation", "heading")
-        insert("Version: 1.4.2 (Revised) Release — Date: 30 June 2025", "footer")
-        insert("")
-        insert("1. Product Overview", "subheading")
-        insert("Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting.", "normal")
-        insert("It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.", "normal")
-        insert("")
-        insert("2. System Requirements", "subheading")
-        insert("• OS: Windows 10/11, Windows Server 2012–2022", "bullet")
-        insert("• Python: 3.8+ (for source version)", "bullet")
-        insert("• Dependencies: requests, reportlab, tkinter (standard with Python)", "bullet")
-        insert("• Privileges: Administrator recommended for full netstat/route access", "bullet")
-        insert("• Network: Internet required for GeoIP, ASN, and speed test features", "bullet")
-        insert("")
-        insert("3. Installation", "subheading")
-        insert("A. Standalone Executable:", "normal")
-        insert("   - Download the .exe file and double-click to launch. No Python required.", "normal")
-        insert("B. From Source:", "normal")
-        insert("   1. Install Python 3.8+ from python.org", "normal")
-        insert("   2. Install dependencies:", "normal")
-        insert("      pip install requests reportlab", "command")
-        insert("   3. Run:", "normal")
-        insert("      python src/main.py", "command")
-        insert("")
-        insert("4. Functional Overview", "subheading")
-        insert("All diagnostics and reports are scoped to the IP/domain entered in the search bar.", "note")
-        insert("Buttons:", "normal")
-        insert("  - Send Ping: ICMP echo request to target. Live RTT, packet loss, summary stats.", "bullet")
-        insert("  - Show Route Table: Displays local routing table (route print/netstat -rn).", "bullet")
-        insert("  - Geo & ASN Lookup: Queries public APIs for geolocation and ASN data.", "bullet")
-        insert("  - Show Next Hops: Traceroute (5 hops) to target.", "bullet")
-        insert("  - Advanced Packet Capture: Shows active TCP/UDP connections for the target.", "bullet")
-        insert("  - Port Scan Capture: TCP connect scan of all ports. Live progress.", "bullet")
-        insert("  - Bandwidth Speed Test: Download/upload speed using speed.hetzner.de.", "bullet")
-        insert("  - Start Ping Graph: Real-time RTT plot for the target.", "bullet")
-        insert("  - Divide Subnet: Splits entered CIDR into user-defined subnets.", "bullet")
-        insert("  - Auto Network Health Report (PDF): Aggregates diagnostics into a PDF report.", "bullet")
-        insert("  - Reset Output & Input: Clears output and search bar.", "bullet")
-        insert("  - Stop All Functions: Terminates all ongoing diagnostics and scans.", "bullet")
-        insert("")
-        insert("5. Operational Details", "subheading")
-        insert("- Send Ping: Uses system ping utility. Aggregates min/avg/max RTT, packet loss.", "normal")
-        insert("- Show Route Table: route print (Windows) or netstat -rn (Unix).", "normal")
-        insert("- Geo & ASN Lookup: Uses ipinfo.io API. Requires internet.", "normal")
-        insert("- Show Next Hops: tracert/traceroute for up to 5 hops.", "normal")
-        insert("- Advanced Packet Capture: netstat -ano/-tunap, filtered for target.", "normal")
-        insert("- Port Scan Capture: TCP connect scan on all ports (1–65535). May take several minutes.", "normal")
-        insert("- Bandwidth Speed Test: Downloads 100MB from speed.hetzner.de. Upload via httpbin.org.", "normal")
-        insert("- Start Ping Graph: Plots real-time RTT values.", "normal")
-        insert("- Divide Subnet: Accepts CIDR, prompts for number of subnets, displays results.", "normal")
-        insert("- Auto Network Health Report (PDF): Runs all diagnostics, generates PDF (Desktop).", "normal")
-        insert("- Reset Output & Input: Clears output and search bar.", "normal")
-        insert("- Stop All Functions: Halts all running threads and diagnostics.", "normal")
-        insert("")
-        insert("6. Best Practices & Notes", "subheading")
-        insert("• Always enter a valid IP/domain before running any function.", "bullet")
-        insert("• For accurate results, run as administrator.", "bullet")
-        insert("• Use bandwidth and port scan features responsibly; avoid scanning unauthorized hosts.", "bullet")
-        insert("• All diagnostics are performed on the entered target only—no local defaults.", "bullet")
-        insert("• For support: arunimpandey2903@hotmail.com", "bullet")
-        insert("")
+            # Check for reference article links and encapsulate as clickable topic
+            link_inserted = False
+            for link_text, url in link_map.items():
+                if line.strip() == f"• {link_text}":
+                    self.graph_text.insert(tk.END, "• ", "bullet")
+                    insert_link(link_text, url)
+                    self.graph_text.insert(tk.END, "\n\n")
+                    link_inserted = True
+                    break
+            if link_inserted:
+                continue
 
-        # Reference Articles Section
-        insert("Reference Articles", "heading")
-        for idx, (text, url) in enumerate(reference_links):
-            tag = f"ref_link_{idx}"
-            start_idx = self.graph_text.index(tk.END)
-            self.graph_text.insert(tk.END, f"• {text}\n", ("link", tag))
-            end_idx = self.graph_text.index(tk.END)
-            # Remove trailing newline from tag range
-            self.graph_text.tag_add(tag, start_idx, f"{end_idx} -1c")
-            self.graph_text.tag_bind(tag, "<Button-1>", lambda e, link=url: webbrowser.open(link))
+            # Insert line with one line space, highlighting commands
+            start_idx = 0
+            for match in command_pattern.finditer(line):
+                cmd_start, cmd_end = match.span()
+                # Insert text before command
+                if cmd_start > start_idx:
+                    self.graph_text.insert(tk.END, line[start_idx:cmd_start], tag)
+                # Insert command with script font/color
+                self.graph_text.insert(tk.END, line[cmd_start:cmd_end], "command")
+                start_idx = cmd_end
+            # Insert any remaining text after last command
+            self.graph_text.insert(tk.END, line[start_idx:], tag)
+            self.graph_text.insert(tk.END, "\n\n")  # One line space after each line
 
         self.graph_text.config(state=tk.DISABLED)
 
@@ -1442,6 +1456,154 @@ class NetworkToolApp:
         self.graph_text.config(state=tk.NORMAL)
         self.graph_text.tag_remove("watermark", "1.0", tk.END)
         self.graph_text.config(state=tk.DISABLED)
+
+    def on_canvas_resize(self, event):
+        """Redraw the ping graph when the canvas is resized."""
+        if hasattr(self, "draw_ping_graph"):
+            self.draw_ping_graph()
+
+    def draw_ping_graph(self):
+        """Draw the ping graph on the canvas with labeled axes (Ping # vs ms)."""
+        self.graph_canvas.delete("all")
+        if not self.pings or all(p is None for p in self.pings):
+            return
+
+        width = int(self.graph_canvas.winfo_width())
+        height = int(self.graph_canvas.winfo_height())
+        margin = 40  # Increased margin for axis labels
+
+        # Filter out None values for min/max
+        valid_pings = [p for p in self.pings if p is not None]
+        if not valid_pings:
+            return
+
+        min_ping = min(valid_pings)
+        max_ping = max(valid_pings)
+        if min_ping == max_ping:
+            min_ping = 0  # Avoid division by zero
+
+        n = len(self.pings)
+        x_step = (width - 2 * margin) / max(n - 1, 1)
+        points = []
+        for i, ping in enumerate(self.pings):
+            x = margin + i * x_step
+            if ping is not None:
+                y = height - margin - ((ping - min_ping) / (max_ping - min_ping + 1e-5)) * (height - 2 * margin)
+            else:
+                y = height - margin
+            points.append((x, y))
+
+        # Draw axes
+        self.graph_canvas.create_line(margin, margin, margin, height - margin, fill="#888", width=2)
+        self.graph_canvas.create_line(margin, height - margin, width - margin, height - margin, fill="#888", width=2)
+
+        # Draw axis labels
+        self.graph_canvas.create_text(width // 2, height - margin + 25, text="Ping #", font=("Consolas", 12, "bold"))
+        self.graph_canvas.create_text(margin - 30, height // 2, text="ms", font=("Consolas", 12, "bold"), angle=90)
+
+        # Draw y-axis ticks and labels (ms)
+        for i in range(5):
+            ms_val = min_ping + (max_ping - min_ping) * (4 - i) / 4
+            y = margin + i * (height - 2 * margin) / 4
+            self.graph_canvas.create_line(margin - 5, y, margin + 5, y, fill="#888")
+            self.graph_canvas.create_text(margin - 15, y, text=f"{ms_val:.0f}", font=("Consolas", 10))
+
+        # Draw x-axis ticks and labels (Ping #)
+        for i in range(0, n, max(1, n // 6)):
+            x = margin + i * x_step
+            self.graph_canvas.create_line(x, height - margin - 5, x, height - margin + 5, fill="#888")
+            self.graph_canvas.create_text(x, height - margin + 15, text=str(i + 1), font=("Consolas", 10))
+
+        # Draw graph line
+        for i in range(1, len(points)):
+            self.graph_canvas.create_line(
+                points[i - 1][0], points[i - 1][1],
+                points[i][0], points[i][1],
+                fill="#005a9e", width=2
+            )
+
+        # Draw points
+        for x, y in points:
+            self.graph_canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="#228b22", outline="")
+
+        # Draw min/max/avg labels
+        avg_ping = sum(valid_pings) / len(valid_pings)
+        self.graph_canvas.create_text(
+            width - margin, margin,
+            text=f"min: {min(valid_pings):.1f} ms   max: {max(valid_pings):.1f} ms   avg: {avg_ping:.1f} ms",
+            anchor="ne", fill="#4B0082", font=("Consolas", 11, "bold")
+        )
+
+    # --- Output area management: Only these methods pack/unpack graph_text/graph_canvas ---
+    def show_text(self):
+        """Show the text output area (graph_text). Hide the graph canvas."""
+        self.graph_canvas.grid_remove()
+        self.graph_text.grid(row=1, column=0, sticky="nsew")
+        self.graph_text.config(state=tk.NORMAL)
+
+        self.graph_text.delete("1.0", tk.END)
+        self.graph_text.config(state=tk.DISABLED)
+
+    def show_canvas(self):
+        """Show only the ping graph canvas (graph_canvas). Hide the text output area."""
+        self.graph_text.grid_remove()
+        self.graph_canvas.grid(row=1, column=0, sticky="nsew")
+        self.graph_canvas.delete("all")  # Make canvas fully empty
+
+    def show_graph_and_text(self, text):
+        """Show both the ping graph and the text output."""
+        self.graph_canvas.grid(row=1, column=0, sticky="nsew")
+        self.graph_text.grid(row=2, column=0, sticky="nsew")
+        self.graph_text.config(state=tk.NORMAL)
+        self.graph_text.delete("1.0", tk.END)
+        self.graph_text.insert(tk.END, text)
+        self.graph_text.config(state=tk.DISABLED)
+
+    def update_graph_text(self, text):
+        """Update the text output area with new text and hide the canvas."""
+        self.graph_canvas.grid_remove()
+        self.graph_text.grid(row=1, column=0, sticky="nsew")
+        self.graph_text.config(state=tk.NORMAL)
+        self.graph_text.delete("1.0", tk.END)
+        self.graph_text.insert(tk.END, text)
+        self.graph_text.config(state=tk.DISABLED)
+
+    def show_route_table(self):
+        """Display the system's routing table for the entered host only."""
+        host = self.entry.get().strip()
+        if not host or host.lower() == "enter ip/domain to diagnose":
+            self.update_graph_text("Please enter a host or IP in the search bar.")
+            return
+        if self._is_localhost(host):
+            self.update_graph_text("Route table for localhost is not allowed. Please enter a public IP or FQDN.")
+            return
+
+        import platform
+        import subprocess
+
+        self.update_graph_text("Fetching route table, please wait...")
+
+        def route_task():
+            try:
+                if platform.system().lower() == "windows":
+                    cmd = ["route", "print"]
+                else:
+                    cmd = ["netstat", "-rn"]
+                output = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+                self.update_graph_text(output)
+            except Exception as e:
+                self.update_graph_text(f"Failed to fetch route table:\n{e}")
+
+        threading.Thread(target=route_task, daemon=True).start()
+
+    def _is_localhost(self, host):
+        """Return True if the host is a local address or localhost."""
+        local_names = {"localhost", "127.0.0.1", "::1"}
+        try:
+            ip = socket.gethostbyname(host)
+        except Exception:
+            ip = host
+        return host.strip().lower() in local_names or ip in local_names
 
 if __name__ == "__main__":
     root = tk.Tk()
