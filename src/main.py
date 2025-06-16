@@ -162,7 +162,7 @@ class NetworkToolApp:
 
         self.footer = tk.Label(
             self.master,
-            text="Network Utility | © Arunim Pandey | Suggestions: arunimpandey2903@hotmail.com | v1.5.2 (30 June 2025)",
+            text="Network Utility | © Arunim Pandey | Suggestions: arunimpandey2903@hotmail.com | v1.5.3 (30 June 2025)",
             font=("Comic Sans MS", 9, "italic"),
             fg="#fff", bg="#4B0082", pady=2, bd=1, relief=tk.RIDGE
         )
@@ -1280,12 +1280,14 @@ class NetworkToolApp:
 
         doc = (
             "Technical SOP & Documentation\n"
-            "Version: 1.5.2 (Revised) Release — Date: 30 June 2025\n"
-            "🔧 Version 1.5.2 Update: Say hello to the new Test-NetConnection button — because real pros test ports with style. No more typing commands like it’s 1999. Just click, connect, and consider your network officially interrogated.\n"
+            "Version: 1.5.3 (Revised) Release — Date: 30 June 2025\n"
+            "🔧 Version 1.5.3 Update: Say hello to the new Test-NetConnection button — because real pros test ports with style. No more typing commands like it’s 1999. Just click, connect, and consider your network officially interrogated.\n"
             "🖼️ GUI now stretches, shrinks, and flexes like a yoga master—thanks to Tkinter's grid, pack, and propagate magic. Resize away, your network tools will always look sharp!\n"
             "1. Product Overview\n"
-            "Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting.\n"
-            "It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.\n"
+            "• Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting.\n"
+            "• This utility smartly leverages built-in OS tooling — like cmd, PowerShell, ping, tracert, and others — to perform diagnostics. Think of it as a middleman with ambition: pulling data from trusted system commands and elegantly painting the results onto the app canvas.\n"
+            "• Of course, since it depends on what the operating system graciously allows, if a command goes rogue (or gets blocked), our app doesn’t argue — it just quietly displays the void. ¯\\_(ツ)_/¯\n"
+            "• It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN.\n"
             "2. System Requirements\n"
             "• OS: Windows 10/11, Windows Server 2012–2022\n"
             "• Python: 3.8+ (for source version)\n"
@@ -1335,8 +1337,8 @@ class NetworkToolApp:
             "• Use bandwidth and port scan features responsibly; avoid scanning unauthorized hosts.\n"
             "• All diagnostics are performed on the entered target only—no local defaults.\n"
             "• For support: arunimpandey2903@hotmail.com\n"
-            "• If Ping’s dead or blocked, don’t expect fireworks — the Graph button will just sit there, silently judging you with a blank screen. We don’t run the remote machine’s firewall, so if it wants to be antisocial... well, that's on them.\n"
             "• Formula Used by speed.hetzner.de to calculate bandwidth : Bandwidth (Mbps) = (Total Bytes Downloaded * 8) / (Elapsed Time in seconds * 1,000,000)\n"
+            "• If Ping’s dead or blocked, don’t expect fireworks — the Graph button will just sit there, silently judging you with a blank screen. We don’t run the remote machine’s firewall, so if it wants to be antisocial... well, that's on them.\n"
             "Reference Articles\n"
             "• GeekForGeeks: IPv4 Overview\n"
             "• GeekForGeeks: IPv6 Overview\n"
@@ -1348,15 +1350,15 @@ class NetworkToolApp:
         self.graph_text.config(state=tk.NORMAL)
         self.graph_text.delete("1.0", tk.END)
 
-        # Professional, formal font and color scheme
-        self.graph_text.tag_configure("heading", font=("Calibri", 15, "bold underline"), foreground="#003366", spacing3=8)
-        self.graph_text.tag_configure("subheading", font=("Calibri", 12, "bold"), foreground="#005a9e", spacing3=4)
-        self.graph_text.tag_configure("topic", font=("Calibri", 11, "bold"), foreground="#1a237e")  # <-- remove underline here
-        self.graph_text.tag_configure("body", font=("Calibri", 11), foreground="#23272e")
-        self.graph_text.tag_configure("bullet", font=("Calibri", 11), foreground="#005a9e")
-        self.graph_text.tag_configure("footer", font=("Calibri", 10, "italic"), foreground="#b22222")
-        self.graph_text.tag_configure("command", font=("Consolas", 11, "italic"), foreground="#b45f06")
-        self.graph_text.tag_configure("link", font=("Calibri", 11, "underline"), foreground="#005a9e")
+        # Professional, formal font and color scheme with improved spacing for readability
+        self.graph_text.tag_configure("heading", font=("Calibri", 16, "underline"), foreground="#228b22", spacing1=8, spacing3=12)
+        self.graph_text.tag_configure("subheading", font=("Calibri", 13, "bold"), foreground="#005a9e", spacing1=6, spacing3=8)
+        self.graph_text.tag_configure("topic", font=("Calibri", 12, "bold"), foreground="#1a237e", spacing1=4, spacing3=6)
+        self.graph_text.tag_configure("body", font=("Calibri", 11), foreground="#23272e", spacing1=2, spacing3=6, lmargin1=8, lmargin2=8)
+        self.graph_text.tag_configure("bullet", font=("Calibri", 11), foreground="#005a9e", spacing1=2, spacing3=6, lmargin1=18, lmargin2=28)
+        self.graph_text.tag_configure("footer", font=("Calibri", 10, "italic"), foreground="#b22222", spacing1=6, spacing3=10)
+        self.graph_text.tag_configure("command", font=("Consolas", 11, "italic"), foreground="#b45f06", spacing1=2, spacing3=6, lmargin1=12)
+        self.graph_text.tag_configure("link", font=("Calibri", 11, "underline"), foreground="#005a9e", spacing1=2, spacing3=6, lmargin1=18, lmargin2=28)
 
         import re
         lines = doc.splitlines()
@@ -1397,6 +1399,14 @@ class NetworkToolApp:
                 self.graph_text.insert(tk.END, line + "\n", "topic")
             elif stripped.startswith("Reference Articles"):
                 self.graph_text.insert(tk.END, line + "\n", "subheading")
+            # Use 'bullet' font for OS details and product overview body
+            elif (
+                stripped == "Network Utility is a Windows-based GUI application for advanced network diagnostics, troubleshooting, and reporting."
+                or stripped == "This utility smartly leverages built-in OS tooling — like cmd, PowerShell, ping, tracert, and others — to perform diagnostics. Think of it as a middleman with ambition: pulling data from trusted system commands and elegantly painting the results onto the app canvas."
+                or stripped == "Of course, since it depends on what the operating system graciously allows, if a command goes rogue (or gets blocked), our app doesn’t argue — it just quietly displays the void. ¯\\_(ツ)_/¯"
+                or stripped == "It consolidates essential network engineering tools into a single interface, supporting real-time monitoring, multi-layer diagnostics, and automated reporting for any IPv4/IPv6 address or FQDN."
+            ):
+                self.graph_text.insert(tk.END, line + "\n", "bullet")
             # Bullets and links
             elif stripped.startswith("• "):
                 is_link = False
@@ -1511,6 +1521,7 @@ class NetworkToolApp:
             )
 
         # Draw points
+
         for x, y in points:
             self.graph_canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="#228b22", outline="")
 
